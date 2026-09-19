@@ -16,6 +16,7 @@ interface CaseDrawerProps {
   patientCase: PatientCase | null;
   onClose: () => void;
   onStartConsultation?: (patientCase: PatientCase) => void;
+  onStatusChange?: (caseId: string, newStatus: string) => void;
 }
 
 interface InterviewResponse {
@@ -44,20 +45,14 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
   patientCase,
   onClose,
   onStartConsultation,
+  onStatusChange,
 }) => {
   const [responses, setResponses] = useState<InterviewResponse[]>([]);
   const [loadingResponses, setLoadingResponses] = useState(false);
-  const [responseError, setResponseError] = useState<string | null>(
-    null
-  );
+  const [responseError, setResponseError] = useState<string | null>(null);
 
   const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL ||
-    'http://localhost:5000/api';
-
-  // ============================================================
-  // LOAD INTERVIEW RESPONSES
-  // ============================================================
+    import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
   useEffect(() => {
     let cancelled = false;
@@ -89,9 +84,7 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
         let data: any = null;
 
         try {
-          data = responseText
-            ? JSON.parse(responseText)
-            : null;
+          data = responseText ? JSON.parse(responseText) : null;
         } catch {
           console.error(
             'Responses endpoint returned non-JSON:',
@@ -113,41 +106,24 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
 
         if (cancelled) return;
 
-        /*
-         * Backend returns:
-         *
-         * {
-         *   success: true,
-         *   responses: [...]
-         * }
-         */
+        const responseList: InterviewResponse[] = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.responses)
+          ? data.responses
+          : [];
 
-        const responseList: InterviewResponse[] =
-          Array.isArray(data)
-            ? data
-            : Array.isArray(data?.responses)
-            ? data.responses
-            : [];
-
-        console.log(
-          'Interview responses received:',
-          responseList
-        );
+        console.log('Interview responses received:', responseList);
 
         setResponses(responseList);
       } catch (error: any) {
         if (cancelled) return;
 
-        console.error(
-          'Failed to load interview responses:',
-          error
-        );
+        console.error('Failed to load interview responses:', error);
 
         setResponses([]);
 
         setResponseError(
-          error?.message ||
-            'Unable to load clinical interview transcript.'
+          error?.message || 'Unable to load clinical interview transcript.'
         );
       } finally {
         if (!cancelled) {
@@ -163,23 +139,11 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
     };
   }, [patientCase?.id, API_BASE_URL]);
 
-  // ============================================================
-  // IMPORTANT:
-  // Hooks are above this conditional return.
-  // This prevents React "Expected static flag was missing".
-  // ============================================================
-
   if (!patientCase) {
     return null;
   }
 
-  // ============================================================
-  // HELPERS
-  // ============================================================
-
-  const getQuestionText = (
-    item: InterviewResponse
-  ): string => {
+  const getQuestionText = (item: InterviewResponse): string => {
     return (
       item.question_text ||
       item.questionText ||
@@ -188,9 +152,7 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
     );
   };
 
-  const getAnswerText = (
-    item: InterviewResponse
-  ): string => {
+  const getAnswerText = (item: InterviewResponse): string => {
     return (
       item.answer_text ||
       item.answerText ||
@@ -199,19 +161,12 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
     );
   };
 
-  const getSection = (
-    item: InterviewResponse
-  ): string => {
+  const getSection = (item: InterviewResponse): string => {
     return item.section || '';
   };
 
-  const getResponseTime = (
-    item: InterviewResponse
-  ): string => {
-    const value =
-      item.created_at ||
-      item.createdAt ||
-      item.timestamp;
+  const getResponseTime = (item: InterviewResponse): string => {
+    const value = item.created_at || item.createdAt || item.timestamp;
 
     if (!value) {
       return '';
@@ -233,31 +188,17 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
     }
   };
 
-  // ============================================================
-  // UI
-  // ============================================================
-
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      {/* ====================================================== */}
       {/* OVERLAY */}
-      {/* ====================================================== */}
-
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      {/* ====================================================== */}
       {/* DRAWER */}
-      {/* ====================================================== */}
-
       <div className="relative flex h-full w-full max-w-2xl flex-col bg-white shadow-2xl">
-
-        {/* ==================================================== */}
         {/* HEADER */}
-        {/* ==================================================== */}
-
         <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100">
@@ -285,17 +226,10 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
           </button>
         </div>
 
-        {/* ==================================================== */}
         {/* MAIN CONTENT */}
-        {/* ==================================================== */}
-
         <div className="flex-1 overflow-y-auto">
           <div className="space-y-6 p-6">
-
-            {/* ================================================= */}
             {/* PATIENT INFORMATION */}
-            {/* ================================================= */}
-
             <section>
               <div className="mb-3 flex items-center gap-2">
                 <User className="h-4 w-4 text-blue-600" />
@@ -307,7 +241,6 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
 
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-
                   <div>
                     <p className="text-xs font-medium text-slate-500">
                       Patient Name
@@ -326,8 +259,7 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
                     </p>
 
                     <p className="mt-1 font-semibold text-slate-900">
-                      {patientCase.patientId ||
-                        'Not available'}
+                      {patientCase.patientId || 'Not available'}
                     </p>
                   </div>
 
@@ -354,15 +286,11 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
                         'Not available'}
                     </p>
                   </div>
-
                 </div>
               </div>
             </section>
 
-            {/* ================================================= */}
             {/* CASE DETAILS */}
-            {/* ================================================= */}
-
             <section>
               <div className="mb-3 flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-blue-600" />
@@ -373,7 +301,6 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-
                 {/* Chief Complaint */}
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
                   <p className="text-xs font-medium text-slate-500">
@@ -393,16 +320,14 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
                   </p>
 
                   <div className="mt-2">
-                    {patientCase.triagePriority ===
-                    'URGENT' ? (
+                    {patientCase.triagePriority === 'URGENT' ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
                         <ShieldAlert className="h-3.5 w-3.5" />
                         URGENT
                       </span>
                     ) : (
                       <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                        {patientCase.triagePriority ||
-                          'Not assigned'}
+                        {patientCase.triagePriority || 'Not assigned'}
                       </span>
                     )}
                   </div>
@@ -427,20 +352,14 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
 
                   <p className="mt-2 text-sm font-semibold text-slate-900">
                     {patientCase.createdAt
-                      ? new Date(
-                          patientCase.createdAt
-                        ).toLocaleString()
+                      ? new Date(patientCase.createdAt).toLocaleString()
                       : 'Not available'}
                   </p>
                 </div>
-
               </div>
             </section>
 
-            {/* ================================================= */}
             {/* CONSENT */}
-            {/* ================================================= */}
-
             <section>
               <div className="mb-3 flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-emerald-600" />
@@ -459,20 +378,16 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
                   </p>
 
                   <p className="mt-1 text-sm leading-5 text-emerald-700">
-                    The patient has provided consent for
-                    AI-assisted clinical history collection.
+                    The patient has provided consent for AI-assisted clinical
+                    history collection.
                   </p>
                 </div>
               </div>
             </section>
 
-            {/* ================================================= */}
             {/* CLINICAL INTERVIEW */}
-            {/* ================================================= */}
-
             <section>
               <div className="mb-3 flex items-center justify-between">
-
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-blue-600" />
 
@@ -484,12 +399,9 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
                 {!loadingResponses && (
                   <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
                     {responses.length}{' '}
-                    {responses.length === 1
-                      ? 'response'
-                      : 'responses'}
+                    {responses.length === 1 ? 'response' : 'responses'}
                   </span>
                 )}
-
               </div>
 
               {/* Loading */}
@@ -534,22 +446,17 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
                     </p>
 
                     <p className="mt-1 text-sm text-slate-500">
-                      The clinical interview transcript
-                      will appear here after the patient
-                      answers questions.
+                      The clinical interview transcript will appear here after
+                      the patient answers questions.
                     </p>
                   </div>
                 )}
 
-              {/* ================================================= */}
               {/* RESPONSE LIST */}
-              {/* ================================================= */}
-
               {!loadingResponses &&
                 !responseError &&
                 responses.length > 0 && (
                   <div className="space-y-3">
-
                     {responses.map((item, index) => (
                       <div
                         key={
@@ -559,14 +466,12 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
                         className="rounded-xl border border-slate-200 bg-white p-4"
                       >
                         <div className="flex items-start gap-3">
-
                           {/* Number */}
                           <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
                             {index + 1}
                           </div>
 
                           <div className="min-w-0 flex-1">
-
                             {/* Question */}
                             <div className="flex items-start justify-between gap-3">
                               <p className="text-sm font-semibold leading-6 text-slate-900">
@@ -594,12 +499,8 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
                             {/* Section */}
                             {getSection(item) && (
                               <div className="mt-3 flex items-center gap-2">
-
                                 <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium capitalize text-blue-600">
-                                  {getSection(item).replace(
-                                    /_/g,
-                                    ' '
-                                  )}
+                                  {getSection(item).replace(/_/g, ' ')}
                                 </span>
 
                                 {item.input_modality && (
@@ -607,23 +508,17 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
                                     {item.input_modality}
                                   </span>
                                 )}
-
                               </div>
                             )}
-
                           </div>
                         </div>
                       </div>
                     ))}
-
                   </div>
                 )}
             </section>
 
-            {/* ================================================= */}
             {/* PIPELINE STATUS */}
-            {/* ================================================= */}
-
             <section>
               <div className="mb-3 flex items-center gap-2">
                 <ArrowUpRight className="h-4 w-4 text-blue-600" />
@@ -634,9 +529,7 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
               </div>
 
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-
                 <div className="space-y-4">
-
                   {/* Patient Registration */}
                   <div className="flex items-center gap-3">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100">
@@ -648,9 +541,7 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
                         Patient Registration
                       </p>
 
-                      <p className="text-xs text-emerald-600">
-                        Completed
-                      </p>
+                      <p className="text-xs text-emerald-600">Completed</p>
                     </div>
                   </div>
 
@@ -665,9 +556,7 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
                         Consent
                       </p>
 
-                      <p className="text-xs text-emerald-600">
-                        Completed
-                      </p>
+                      <p className="text-xs text-emerald-600">Completed</p>
                     </div>
                   </div>
 
@@ -717,40 +606,28 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
                         Doctor Consultation
                       </p>
 
-                      <p className="text-xs text-slate-500">
-                        Pending
-                      </p>
+                      <p className="text-xs text-slate-500">Pending</p>
                     </div>
                   </div>
-
                 </div>
               </div>
             </section>
-
           </div>
         </div>
 
-        {/* ==================================================== */}
         {/* FOOTER */}
-        {/* ==================================================== */}
-
         <div className="border-t border-slate-200 bg-white px-6 py-4">
           <div className="flex items-center justify-between gap-4">
-
             <div>
-              <p className="text-xs text-slate-500">
-                Case priority
-              </p>
+              <p className="text-xs text-slate-500">Case priority</p>
 
               <div className="mt-1 flex items-center gap-2">
-                {patientCase.triagePriority ===
-                  'URGENT' && (
+                {patientCase.triagePriority === 'URGENT' && (
                   <ShieldAlert className="h-4 w-4 text-red-500" />
                 )}
 
                 <span className="text-sm font-semibold text-slate-800">
-                  {patientCase.triagePriority ||
-                    'Normal'}
+                  {patientCase.triagePriority || 'Normal'}
                 </span>
               </div>
             </div>
@@ -763,10 +640,8 @@ export const CaseDrawer: React.FC<CaseDrawerProps> = ({
               <Stethoscope className="h-4 w-4" />
               Start Consultation
             </button>
-
           </div>
         </div>
-
       </div>
     </div>
   );
